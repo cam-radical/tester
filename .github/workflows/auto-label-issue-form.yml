@@ -74,38 +74,32 @@ jobs:
                 }
               }
             }
-
+            
             // ---------------- auto-title on create ----------------
-            // Format: QA:<category>-YYMMDD-username
+            // Format: [QA]: Accessibility YYMMDD-username
             if (context.payload.action === "opened") {
               const createdAt = context.payload.issue.created_at;
               const user = context.payload.issue.user.login;
-
-              const qaCategoryRaw = getSection("QA Category");
-
-              const category = qaCategoryRaw
-                ? qaCategoryRaw
-                    .toLowerCase()
-                    .replace(/[^a-z0-9]+/g, "-")
-                    .replace(/(^-|-$)/g, "")
-                : "unknown";
-
+            
+              const qaCategoryRaw = getSection("QA Category") || "Unknown";
+            
               const d = new Date(createdAt);
               const yy = String(d.getUTCFullYear()).slice(-2);
               const mm = String(d.getUTCMonth() + 1).padStart(2, "0");
               const dd = String(d.getUTCDate()).padStart(2, "0");
-
-              const newTitle = `QA:${category}-${yy}${mm}${dd}-${user}`;
+            
+              const newTitle = `[QA]: ${qaCategoryRaw} ${yy}${mm}${dd}-${user}`;
               const currentTitle = context.payload.issue.title || "";
-
-              // Only overwrite if not already matching QA:<slug>-YYMMDD-*
-              if (!/^QA:[a-z0-9-]+-\d{6}-/.test(currentTitle)) {
+            
+              // Only overwrite if it doesn't already match the desired pattern
+              if (!/^\[QA\]: .+ \d{6}-/.test(currentTitle)) {
                 await github.rest.issues.update({
                   owner,
                   repo,
                   issue_number,
                   title: newTitle
                 });
+            
                 core.info(`Updated issue title to: ${newTitle}`);
               }
             }
