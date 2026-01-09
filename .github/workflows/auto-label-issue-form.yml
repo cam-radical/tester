@@ -1,4 +1,4 @@
-name: Auto-label issues from QA issue form (authoritative)
+name: Auto-label issues from QA issue form (authoritative + no-op when unchanged)
 
 on:
   issues:
@@ -6,6 +6,11 @@ on:
 
 permissions:
   issues: write
+
+# Prevent overlapping runs for the same issue (acts like a debounce)
+concurrency:
+  group: issue-${{ github.event.issue.number }}
+  cancel-in-progress: true
 
 jobs:
   auto_label:
@@ -18,6 +23,16 @@ jobs:
             const repo = context.repo.repo;
             const issue_number = context.issue.number;
             const body = context.payload.issue.body || "";
+
+            // If this was an edit but the body didn't change, skip.
+            // (Prevents relabeling on title/assignee/milestone-only edits, etc.)
+            if (
+              context.payload.action === "edited" &&
+              !context.payload.changes?.body
+            ) {
+              core.info("Issue edited but body did not change. Skipping.");
+              return;
+            }
 
             // ---------------- helpers ----------------
             function escapeRegExp(s) {
@@ -98,30 +113,38 @@ jobs:
 
             const desiredLabels = Array.from(desired);
 
-            // ---------------- authoritative mode ----------------
-            // Remove any existing labels that start with these prefixes,
-            // then apply the new "desiredLabels".
             const prefixes = ["qa:", "device:", "browser:"];
 
-            const currentLabels = (context.payload.issue.labels || []).map(l => l.name);
+            // Safety: if we can't parse anything, do nothing.
+            // (Avoid wiping labels when headings don't match.)
+            if (desiredLabels.length === 0) {
+              core.warning("No desired labels found (check section titles). Skipping.");
+              return;
+            }
 
-            const toRemove = currentLabels.filter(name => prefixes.some(p => name.startsWith(p)));
+            // ---------------- no-op if unchanged ----------------
+            const currentScoped = (context.payload.issue.labels || [])
+              .map(l => l.name)
+              .filter(name => prefixes.some(p => name.startsWith(p)))
+              .sort();
 
-            // Remove old scoped labels
+            const desiredScoped = desiredLabels.slice().sort();
+
+            if (JSON.stringify(currentScoped) === JSON.stringify(desiredScoped)) {
+              core.info("Scoped labels already correct. No changes needed.");
+              return;
+            }
+
+            // ---------------- authoritative mode ----------------
+            // Remove existing scoped labels, then apply desired scoped labels.
+            const toRemove = currentScoped;
+
             for (const name of toRemove) {
               try {
                 await github.rest.issues.removeLabel({ owner, repo, issue_number, name });
               } catch (e) {
-                // If label was already removed or race condition, ignore 404
                 if (e.status !== 404) throw e;
               }
-            }
-
-            // If nothing desired (e.g., headings didn't match), stop here.
-            // This prevents accidentally wiping scoped labels and adding nothing.
-            if (desiredLabels.length === 0) {
-              core.warning("No desired labels found (check section titles). Leaving scoped labels removed.");
-              return;
             }
 
             // Ensure labels exist
