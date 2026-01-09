@@ -80,6 +80,7 @@ jobs:
             const qaCategory = getSection("QA Category");      // dropdown
             const devices = getCheckedOptions("Device(s)");   // checkboxes
             const browsers = getCheckedOptions("Browser(s)"); // checkboxes
+            const issueType = getSection("Issue Type"); // dropdown
 
             // ---------------- mappings ----------------
             const qaMap = {
@@ -103,6 +104,13 @@ jobs:
               "Edge": "browser:edge",
               "Firefox": "browser:firefox",
               "Safari": "browser:safari"
+            };
+
+            const issueTypeMap = {
+              "Breaking Functionality (Didn't Work At All!)": "issue:breaking functionality",
+              "Functional Deviation (Didn't Work as Expected!)": "issue:functional deviation",
+              "Visual / Design (Didn't Look Right!)": "issue:visual / design",
+              "Copy / Content (The Words Are Wrong!)": "issue:copy / content"
             };
 
             const desired = new Set();
