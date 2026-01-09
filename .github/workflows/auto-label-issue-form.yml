@@ -1,0 +1,123 @@
+name: Auto-label issues from QA issue form
+
+on:
+  issues:
+    types: [opened, edited, reopened]
+
+permissions:
+  issues: write
+
+jobs:
+  auto_label:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/github-script@v8
+        with:
+          script: |
+            const owner = context.repo.owner;
+            const repo = context.repo.repo;
+            const issue_number = context.issue.number;
+            const body = context.payload.issue.body || "";
+
+            // ---------------- helpers ----------------
+            function escapeRegExp(s) {
+              return s.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
+            }
+
+            function getSection(sectionTitle) {
+              const re = new RegExp(
+                `^###\\s+${escapeRegExp(sectionTitle)}\\s*\\n+([\\s\\S]*?)(?=\\n###\\s+|\\n$)`,
+                "m"
+              );
+              const m = body.match(re);
+              return m ? m[1].trim() : null;
+            }
+
+            function getCheckedOptions(sectionTitle) {
+              const block = getSection(sectionTitle);
+              if (!block) return [];
+              return block
+                .split("\n")
+                .map(l => l.trim())
+                .filter(l => l.startsWith("- [x] "))
+                .map(l => l.replace("- [x] ", "").trim());
+            }
+
+            async function ensureLabel(name) {
+              try {
+                await github.rest.issues.getLabel({ owner, repo, name });
+              } catch (e) {
+                if (e.status === 404) {
+                  await github.rest.issues.createLabel({
+                    owner,
+                    repo,
+                    name,
+                    color: "c5def5",
+                    description: "Auto-applied from issue form"
+                  });
+                } else {
+                  throw e;
+                }
+              }
+            }
+
+            // ---------------- read form values ----------------
+            const qaCategory = getSection("QA Category");      // dropdown
+            const devices = getCheckedOptions("Device(s)");   // checkboxes
+            const browsers = getCheckedOptions("Browser(s)"); // checkboxes
+
+            // ---------------- mappings ----------------
+            const qaMap = {
+              "Functionality Testing": "qa:functionality",
+              "Responsive and Cross-browser Testing": "qa:responsive-crossbrowser",
+              "Accessibility": "qa:accessibility",
+              "Load Testing": "qa:load"
+            };
+
+            const deviceMap = {
+              "Mac Desktop / Laptop": "device:mac",
+              "Windows Desktop / Laptop": "device:windows",
+              "iPhone": "device:iphone",
+              "Android Phone": "device:android-phone",
+              "iPad": "device:ipad",
+              "Android Tablet": "device:android-tablet"
+            };
+
+            const browserMap = {
+              "Chrome": "browser:chrome",
+              "Edge": "browser:edge",
+              "Firefox": "browser:firefox",
+              "Safari": "browser:safari"
+            };
+
+            const labels = new Set();
+
+            if (qaCategory && qaMap[qaCategory]) {
+              labels.add(qaMap[qaCategory]);
+            }
+
+            devices.forEach(d => {
+              if (deviceMap[d]) labels.add(deviceMap[d]);
+            });
+
+            browsers.forEach(b => {
+              if (browserMap[b]) labels.add(browserMap[b]);
+            });
+
+            const finalLabels = Array.from(labels);
+
+            if (finalLabels.length === 0) return;
+
+            // ---------------- ensure + apply ----------------
+            for (const l of finalLabels) {
+              await ensureLabel(l);
+            }
+
+            await github.rest.issues.addLabels({
+              owner,
+              repo,
+              issue_number,
+              labels: finalLabels
+            });
+
+            core.info(`Applied labels: ${finalLabels.join(", ")}`);
