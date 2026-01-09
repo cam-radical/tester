@@ -29,9 +29,13 @@ body:
   - type: textarea
     id: problem
     attributes:
-      label: Problem?
+      label: Actual behavior vs expected behavior?
       description: What’s wrong? Be specific and describe impact.
-      placeholder: "Example: Clicking Submit shows a blank page instead of confirmation."
+      placeholder: "Actual:
+        The page reloads and shows a blank screen after clicking Submit.
+
+        Expected:
+        A confirmation message should appear and the form should be saved."
     validations:
       required: true
 
