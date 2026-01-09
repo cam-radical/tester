@@ -17,6 +17,16 @@ body:
     validations:
       required: true
 
+  - field: Issue Type
+    type: single_select
+    options:
+      - Breaking Functionality (Didn't Work At All!)
+      - Functional Deviation (Didn't Work as Expected!)
+      - Visual / Design (Didn't Look Right!)
+      - Copy / Content (The Words Are Wrong!)
+    validations:
+      required: true
+
   - type: input
     id: urls
     attributes:
