@@ -80,7 +80,7 @@ jobs:
             const qaCategory = getSection("QA Category");      // dropdown
             const devices = getCheckedOptions("Device(s)");   // checkboxes
             const browsers = getCheckedOptions("Browser(s)"); // checkboxes
-            const issueType = getSection("Issue Type"); // dropdown
+            const issueType = getSection("Issue Type");       // dropdown
 
             // ---------------- mappings ----------------
             const qaMap = {
@@ -119,12 +119,15 @@ jobs:
             devices.forEach(d => { if (deviceMap[d]) desired.add(deviceMap[d]); });
             browsers.forEach(b => { if (browserMap[b]) desired.add(browserMap[b]); });
 
+            // ✅ ADD THIS (your missing piece)
+            if (issueType && issueTypeMap[issueType]) desired.add(issueTypeMap[issueType]);
+
             const desiredLabels = Array.from(desired);
 
-            const prefixes = ["qa:", "device:", "browser:"];
+            // ✅ INCLUDE issue: in authoritative prefixes
+            const prefixes = ["qa:", "device:", "browser:", "issue:"];
 
             // Safety: if we can't parse anything, do nothing.
-            // (Avoid wiping labels when headings don't match.)
             if (desiredLabels.length === 0) {
               core.warning("No desired labels found (check section titles). Skipping.");
               return;
@@ -145,9 +148,7 @@ jobs:
 
             // ---------------- authoritative mode ----------------
             // Remove existing scoped labels, then apply desired scoped labels.
-            const toRemove = currentScoped;
-
-            for (const name of toRemove) {
+            for (const name of currentScoped) {
               try {
                 await github.rest.issues.removeLabel({ owner, repo, issue_number, name });
               } catch (e) {
@@ -166,5 +167,5 @@ jobs:
               labels: desiredLabels
             });
 
-            core.info(`Removed scoped labels: ${toRemove.join(", ") || "(none)"}`);
+            core.info(`Removed scoped labels: ${currentScoped.join(", ") || "(none)"}`);
             core.info(`Applied labels: ${desiredLabels.join(", ")}`);
