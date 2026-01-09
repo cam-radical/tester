@@ -123,6 +123,16 @@ body:
         - label: Android 15
         - label: Android 14
     validations:
+      required: true  - type: checkboxes
+    id: isp_speed
+    attributes:
+      label: General ISP Speed
+      description: Approximate internet speed at the time of testing.
+      options:
+        - label: Slow (< 10 Mbps)
+        - label: Average (10–100 Mbps)
+        - label: Fast (> 100 Mbps)
+    validations:
       required: true
 
   - type: markdown
