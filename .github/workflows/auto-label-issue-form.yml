@@ -1,4 +1,4 @@
-name: Auto-label issues from QA issue form
+name: Auto-label issues from QA issue form (authoritative)
 
 on:
   issues:
@@ -90,34 +90,50 @@ jobs:
               "Safari": "browser:safari"
             };
 
-            const labels = new Set();
+            const desired = new Set();
 
-            if (qaCategory && qaMap[qaCategory]) {
-              labels.add(qaMap[qaCategory]);
+            if (qaCategory && qaMap[qaCategory]) desired.add(qaMap[qaCategory]);
+            devices.forEach(d => { if (deviceMap[d]) desired.add(deviceMap[d]); });
+            browsers.forEach(b => { if (browserMap[b]) desired.add(browserMap[b]); });
+
+            const desiredLabels = Array.from(desired);
+
+            // ---------------- authoritative mode ----------------
+            // Remove any existing labels that start with these prefixes,
+            // then apply the new "desiredLabels".
+            const prefixes = ["qa:", "device:", "browser:"];
+
+            const currentLabels = (context.payload.issue.labels || []).map(l => l.name);
+
+            const toRemove = currentLabels.filter(name => prefixes.some(p => name.startsWith(p)));
+
+            // Remove old scoped labels
+            for (const name of toRemove) {
+              try {
+                await github.rest.issues.removeLabel({ owner, repo, issue_number, name });
+              } catch (e) {
+                // If label was already removed or race condition, ignore 404
+                if (e.status !== 404) throw e;
+              }
             }
 
-            devices.forEach(d => {
-              if (deviceMap[d]) labels.add(deviceMap[d]);
-            });
-
-            browsers.forEach(b => {
-              if (browserMap[b]) labels.add(browserMap[b]);
-            });
-
-            const finalLabels = Array.from(labels);
-
-            if (finalLabels.length === 0) return;
-
-            // ---------------- ensure + apply ----------------
-            for (const l of finalLabels) {
-              await ensureLabel(l);
+            // If nothing desired (e.g., headings didn't match), stop here.
+            // This prevents accidentally wiping scoped labels and adding nothing.
+            if (desiredLabels.length === 0) {
+              core.warning("No desired labels found (check section titles). Leaving scoped labels removed.");
+              return;
             }
 
+            // Ensure labels exist
+            for (const l of desiredLabels) await ensureLabel(l);
+
+            // Apply desired labels
             await github.rest.issues.addLabels({
               owner,
               repo,
               issue_number,
-              labels: finalLabels
+              labels: desiredLabels
             });
 
-            core.info(`Applied labels: ${finalLabels.join(", ")}`);
+            core.info(`Removed scoped labels: ${toRemove.join(", ") || "(none)"}`);
+            core.info(`Applied labels: ${desiredLabels.join(", ")}`);
