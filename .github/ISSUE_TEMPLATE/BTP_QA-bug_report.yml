@@ -1,6 +1,5 @@
 name: BTP QA Bug Report
 description: Report a bug found during QA
-title: "[QA]: "
 labels: ["QA"]
 
 body:
