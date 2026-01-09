@@ -81,7 +81,7 @@ jobs:
               const createdAt = context.payload.issue.created_at;
               const user = context.payload.issue.user.login;
             
-              cconst qaCategoryRaw = getSection("QA Category");
+              const qaCategoryRaw = getSection("QA Category");
 
               const qaTitleMap = {
                 "Accessibility": "A11Y",
