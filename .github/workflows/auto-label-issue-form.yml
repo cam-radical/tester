@@ -7,7 +7,6 @@ on:
 permissions:
   issues: write
 
-# Prevent overlapping runs for the same issue (acts like a debounce)
 concurrency:
   group: issue-${{ github.event.issue.number }}
   cancel-in-progress: true
@@ -58,41 +57,6 @@ jobs:
                 .map(l => l.replace("- [x] ", "").trim());
             }
 
-          // ---------------- auto-title on create ----------------
-          if (context.payload.action === "opened") {
-            const createdAt = context.payload.issue.created_at;
-            const user = context.payload.issue.user.login;
-          
-            const qaCategoryRaw = getSection("QA Category");
-          
-            const category = qaCategoryRaw
-              ? qaCategoryRaw
-                  .toLowerCase()
-                  .replace(/[^a-z0-9]+/g, "-")
-                  .replace(/(^-|-$)/g, "")
-              : "unknown";
-          
-            const d = new Date(createdAt);
-            const yy = String(d.getUTCFullYear()).slice(-2);
-            const mm = String(d.getUTCMonth() + 1).padStart(2, "0");
-            const dd = String(d.getUTCDate()).padStart(2, "0");
-          
-            const newTitle = `QA:${category}-${yy}${mm}${dd}-${user}`;
-          
-            const currentTitle = context.payload.issue.title || "";
-          
-            if (!/^QA:[a-z0-9-]+-\d{6}-/.test(currentTitle)) {
-              await github.rest.issues.update({
-                owner,
-                repo,
-                issue_number,
-                title: newTitle
-              });
-          
-              core.info(`Updated issue title to: ${newTitle}`);
-            }
-          }
-
             async function ensureLabel(name) {
               try {
                 await github.rest.issues.getLabel({ owner, repo, name });
@@ -108,6 +72,41 @@ jobs:
                 } else {
                   throw e;
                 }
+              }
+            }
+
+            // ---------------- auto-title on create ----------------
+            // Format: QA:<category>-YYMMDD-username
+            if (context.payload.action === "opened") {
+              const createdAt = context.payload.issue.created_at;
+              const user = context.payload.issue.user.login;
+
+              const qaCategoryRaw = getSection("QA Category");
+
+              const category = qaCategoryRaw
+                ? qaCategoryRaw
+                    .toLowerCase()
+                    .replace(/[^a-z0-9]+/g, "-")
+                    .replace(/(^-|-$)/g, "")
+                : "unknown";
+
+              const d = new Date(createdAt);
+              const yy = String(d.getUTCFullYear()).slice(-2);
+              const mm = String(d.getUTCMonth() + 1).padStart(2, "0");
+              const dd = String(d.getUTCDate()).padStart(2, "0");
+
+              const newTitle = `QA:${category}-${yy}${mm}${dd}-${user}`;
+              const currentTitle = context.payload.issue.title || "";
+
+              // Only overwrite if not already matching QA:<slug>-YYMMDD-*
+              if (!/^QA:[a-z0-9-]+-\d{6}-/.test(currentTitle)) {
+                await github.rest.issues.update({
+                  owner,
+                  repo,
+                  issue_number,
+                  title: newTitle
+                });
+                core.info(`Updated issue title to: ${newTitle}`);
               }
             }
 
@@ -153,13 +152,10 @@ jobs:
             if (qaCategory && qaMap[qaCategory]) desired.add(qaMap[qaCategory]);
             devices.forEach(d => { if (deviceMap[d]) desired.add(deviceMap[d]); });
             browsers.forEach(b => { if (browserMap[b]) desired.add(browserMap[b]); });
-
-            // ✅ ADD THIS (your missing piece)
             if (issueType && issueTypeMap[issueType]) desired.add(issueTypeMap[issueType]);
 
             const desiredLabels = Array.from(desired);
 
-            // ✅ INCLUDE issue: in authoritative prefixes
             const prefixes = ["qa:", "device:", "browser:", "issue:"];
 
             // Safety: if we can't parse anything, do nothing.
@@ -182,7 +178,6 @@ jobs:
             }
 
             // ---------------- authoritative mode ----------------
-            // Remove existing scoped labels, then apply desired scoped labels.
             for (const name of currentScoped) {
               try {
                 await github.rest.issues.removeLabel({ owner, repo, issue_number, name });
@@ -191,10 +186,8 @@ jobs:
               }
             }
 
-            // Ensure labels exist
             for (const l of desiredLabels) await ensureLabel(l);
 
-            // Apply desired labels
             await github.rest.issues.addLabels({
               owner,
               repo,
