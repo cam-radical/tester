@@ -8,18 +8,12 @@ body:
     id: qa_category
     attributes:
       label: QA Category
-      description: Choose the category that best matches this issue.
+      description: Select the type of QA testing this issue relates to.
       options:
-        - Choose
-        - Bug
-        - UI / Visual
-        - Content / Copy
-        - Performance
+        - Functionality Testing
+        - Responsive and Cross-browser Testing
         - Accessibility
-        - Mobile / Responsive
-        - Login / Auth
-        - Data / Sync
-        - Other
+        - Load Testing
     validations:
       required: true
 
@@ -54,19 +48,15 @@ body:
       required: true
 
   - type: dropdown
-    id: account_status
+    id: account_state
     attributes:
-      label: Account Status
-      description: What kind of account were you using?
+      label: Account State
+      description: What was the user’s authentication state?
       options:
-        - Choose
-        - Logged out
-        - Logged in (standard)
-        - Logged in (admin)
-        - New user / first-time
-        - Trial
-        - Paid subscriber
-        - Other / unknown
+        - Logged In
+        - Logged Out
+        - Logged In and Logged Out
+        - N/A
     validations:
       required: true
 
