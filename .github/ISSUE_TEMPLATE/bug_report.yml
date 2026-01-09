@@ -1,13 +1,142 @@
-name: Bug Report
-description: Report something that is broken
-title: "[Bug]: "
-labels: ["bug"]
+name: QA Bug Report
+description: Report a bug found during QA
+title: "[QA]: "
+labels: ["qa", "bug"]
 
 body:
-  - type: textarea
-    id: description
+  - type: dropdown
+    id: qa_category
     attributes:
-      label: What happened?
-      placeholder: Describe the problem
+      label: QA Category
+      description: Choose the category that best matches this issue.
+      options:
+        - Choose
+        - Bug
+        - UI / Visual
+        - Content / Copy
+        - Performance
+        - Accessibility
+        - Mobile / Responsive
+        - Login / Auth
+        - Data / Sync
+        - Other
     validations:
       required: true
+
+  - type: input
+    id: urls
+    attributes:
+      label: URL(s)
+      description: Paste one or more URLs (separate with commas or new lines).
+      placeholder: https://example.com/page
+    validations:
+      required: false
+
+  - type: textarea
+    id: problem
+    attributes:
+      label: Problem?
+      description: What’s wrong? Be specific and describe impact.
+      placeholder: "Example: Clicking Submit shows a blank page instead of confirmation."
+    validations:
+      required: true
+
+  - type: textarea
+    id: steps
+    attributes:
+      label: Steps to Reproduce?
+      description: Numbered steps are best.
+      placeholder: |
+        1. Go to ...
+        2. Click ...
+        3. Observe ...
+    validations:
+      required: true
+
+  - type: dropdown
+    id: account_status
+    attributes:
+      label: Account Status
+      description: What kind of account were you using?
+      options:
+        - Choose
+        - Logged out
+        - Logged in (standard)
+        - Logged in (admin)
+        - New user / first-time
+        - Trial
+        - Paid subscriber
+        - Other / unknown
+    validations:
+      required: true
+
+  - type: checkboxes
+    id: browsers
+    attributes:
+      label: Browser(s)
+      description: Check all that apply.
+      options:
+        - label: Chrome
+        - label: Edge
+        - label: Firefox
+        - label: Safari
+    validations:
+      required: true
+
+  - type: checkboxes
+    id: devices
+    attributes:
+      label: Device(s)
+      description: Check all that apply.
+      options:
+        - label: Mac Desktop / Laptop
+        - label: Windows Desktop / Laptop
+        - label: iPhone
+        - label: Android Phone
+        - label: iPad
+        - label: Android Tablet
+    validations:
+      required: true
+
+  - type: checkboxes
+    id: general_os
+    attributes:
+      label: General Operating System(s)
+      description: Check all that apply.
+      options:
+        - label: Mac OS
+        - label: Windows
+        - label: iOS
+        - label: Android OS
+        - label: iPadOS
+    validations:
+      required: true
+
+  - type: checkboxes
+    id: specific_os
+    attributes:
+      label: Specific Operating System(s)
+      description: Check all that apply.
+      options:
+        - label: Mac OS 26.x Tahoe
+        - label: Mac OS 15.x Sequoia
+        - label: Mac OS 14.x Sonoma
+        - label: Mac OS 13.x Ventura
+        - label: Mac OS 12.x Monterey
+        - label: Mac OS 11.x Big Sur
+        - label: Windows 11.x
+        - label: Windows 10.x
+        - label: iOS 26.x
+        - label: iOS 18.x
+        - label: iOS 17.x
+        - label: Android 16
+        - label: Android 15
+        - label: Android 14
+    validations:
+      required: true
+
+  - type: markdown
+    attributes:
+      value: |
+        ### Screenshots / Video (if helpful)
+        Add files by dragging them into this issue after it’s created, or paste images directly into the text box.
