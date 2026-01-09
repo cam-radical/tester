@@ -17,9 +17,12 @@ body:
     validations:
       required: true
 
-  - field: Issue Type
-    type: single_select
-    options:
+  - type: dropdown
+    id: issue_category
+    attributes:
+      label: Issue Type
+      description: What didn't work? 
+      options:
       - Breaking Functionality (Didn't Work At All!)
       - Functional Deviation (Didn't Work as Expected!)
       - Visual / Design (Didn't Look Right!)
